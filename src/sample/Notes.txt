@@ -1,0 +1,67 @@
+Note that before running an application connected to SQLite,
+the driver has to be imported into the project LIBRARIES
+
+Project Structure -> Libraries -> Click on + in the left upper corner ->
+Java -> Ok
+
+
+Connect Java Database to GUI
+1: Create method (in Datasource) for querying the needed items from the Database
+    EXAMPLE: public List<Album> queryAlbumsForArtistId(int id) {
+                     try {
+                         queryAlbumsByArtistId_PreparedStatement.setInt(1, id);
+                         ResultSet resultSet = queryAlbumsByArtistId_PreparedStatement.executeQuery();
+
+                         List<Album> albumsList = createAlbumsList(resultSet, id);
+                         return albumsList;
+                     } catch (SQLException e) {
+                         System.out.println("Query failed: " + e.getMessage());
+                         return null;
+                     }
+
+                 }
+
+2: Create the view item in the main.fxml
+   EXAMPLE: <TableView fx:id="artistTable" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+                        <columns>
+                            <TableColumn prefWidth="${artistTable.width}" text="Name">
+                                <cellValueFactory>
+                                    <PropertyValueFactory property="name"/>
+                                </cellValueFactory>
+                            </TableColumn>
+                        </columns>
+                        <BorderPane.margin>
+                            <Insets right="10.0" />
+                        </BorderPane.margin>
+                    </TableView>
+
+
+3: Add the created vie into the controller using the @FXML annotation
+    EXAMPLE: @FXML
+             private TableView artistTable;
+
+
+
+4: Create a method that will trigger the view in the controller
+    EXAMPLE: @FXML
+                 public void listAlbumsForArtist(){
+                     final Artist artist =(Artist) artistTable.getSelectionModel().getSelectedItem();
+                     if(artist == null){
+                         System.out.println("NO ARTIST SELECTED");
+                         return;
+                     }
+                     Task<ObservableList<Album>> task = new Task<ObservableList<Album>>(){
+
+                         @Override
+                         protected ObservableList<Album> call() throws Exception {
+                             return FXCollections.observableArrayList(
+                                     DataSource.getInstance().queryAlbumsForArtistId(artist.getId())
+                             );
+                         }
+                     };
+                     artistTable.itemsProperty().bind(task.valueProperty());
+                     new Thread(task).start();
+                 }
+
+5: Create the element which will trigger the method in the controller class: The onAction property represents the trigger method
+    EXAMPLE: <Button onAction="#listAlbumsForArtist" maxWidth="Infinity" mnemonicParsing="false" text="Show Albums (artist)" />
